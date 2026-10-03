@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>wayn 商城 · AI 客服</title>
+<link rel="stylesheet" href="/ui/css/chat.css">
+</head>
+<body>
+
+<!-- 未登录时只显示登录面板；登录后隐藏 -->
+<section id="login">
+  <h2>登录 wayn 商城</h2>
+  <p class="hint">移动端是短信验证码登录；开发环境验证码固定 <b>1234</b>，任意合法手机号都会自动注册。<br>
+     登录状态与商城页共享（同一个 localStorage key）。</p>
+  <label for="mobile">手机号</label>
+  <input id="mobile" value="13800000001" autocomplete="tel">
+  <label for="yzm">短信验证码</label>
+  <div class="row">
+    <input id="yzm" value="1234">
+    <button id="sendCode" type="button">发送验证码</button>
+  </div>
+  <div class="actions">
+    <button id="loginBtn" class="primary" type="button">登录并开始咨询</button>
+  </div>
+  <div class="err" id="loginErr"></div>
+</section>
+
+<!-- 登录后的主界面 -->
+<div id="app" style="display:none; height:100%; flex-direction:column;">
+  <header>
+    <a class="back" href="/">← 返回商城</a>
+    <h1>AI 客服</h1>
+    <span class="chip ok" id="who"></span>
+    <span class="spacer"></span>
+    <span class="chip" id="sessionChip"></span>
+    <button id="newSession" type="button">新会话</button>
+    <button id="clearSession" class="danger" type="button">清空会话</button>
+    <button id="logout" type="button">退出</button>
+  </header>
+
+  <main id="main"><div class="wrap" id="turns"></div></main>
+
+  <!-- 快捷项分两种：data-msg 是"问题已经完整"，点了直接发；
+       data-fill 是"还缺你的信息"，只把话头填进输入框，等你补完再发 -->
+  <div id="quick">
+    <button type="button" data-msg="我的订单到哪了？">我的订单</button>
+    <button type="button" data-msg="你们的退货退款政策是什么？">退货政策</button>
+    <button type="button" data-fill="帮我找找有没有" title="点一下，再补上商品名">找商品</button>
+    <button type="button" data-fill="帮我算一下：" title="点一下，再补上要算的数">算价格</button>
+    <button type="button" data-msg="我要转人工">转人工</button>
+  </div>
+
+  <footer>
+    <div id="composer">
+      <textarea id="input" placeholder="说点什么…（Enter 发送，Shift+Enter 换行）"></textarea>
+      <button id="send" class="primary" type="button">发送</button>
+    </div>
+    <div id="state"></div>
+  </footer>
+</div>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+
+// 与商城页共用登录态：同一份 token，两边任一处登录/退出都生效
+const store = {
+  get token() { return localStorage.getItem("mall.token") || ""; },
+  set token(v) { v ? localStorage.setItem("mall.token", v) : localStorage.removeItem("mall.token"); },
+  get mobile() { return localStorage.getItem("mall.mobile") || ""; },
+  set mobile(v) { v ? localStorage.setItem("mall.mobile", v) : localStorage.removeItem("mall.mobile"); },
+};
+
+let sessionId = store.token ? newSessionId() : "";
+let busy = false;
+
+function newSessionId() {
+  // 会话 ID 会拼进 Redis key，只允许 [A-Za-z0-9_.-]
+  return "web-" + Math.random().toString(36).slice(2, 10) + "-" + Date.now().toString(36);
+}
+
+function authHeaders(extra) {
+  return Object.assign({ "Authorization": store.token }, extra || {});
+}
+
+async function readError(res) {
+  try {
+    const body = await res.json();
+    if (body && body.detail && body.detail.message) return body.detail.message;
+    if (typeof body.detail === "string") return body.detail;
+    return JSON.stringify(body);
+  } catch (e) {
+    return res.status + " " + res.statusText;
+  }
+}
+
+/* ------------------------------ 登录 ------------------------------ */
+$("sendCode").onclick = async () => {
+  $("loginErr").textContent = "";
+  $("sendCode").disabled = true;
+  try {
+    const res = await fetch("/api/login/code", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mobile: $("mobile").value.trim() }),
+    });
+    $("loginErr").textContent = res.ok ? "验证码已发送（开发环境固定 1234）" : await readError(res);
+  } catch (e) {
+    $("loginErr").textContent = "发送失败：" + e.message;
+  } finally {
+    setTimeout(() => { $("sendCode").disabled = false; }, 1000);
+  }
+};
+
+$("loginBtn").onclick = async () => {
+  $("loginErr").textContent = "";
+  $("loginBtn").disabled = true;
+  try {
+    const res = await fetch("/api/login", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mobile: $("mobile").value.trim(), yzm: $("yzm").value.trim() }),
+    });
+    if (!res.ok) { $("loginErr").textContent = await readError(res); return; }
+    const body = await res.json();
+    store.token = body.token;
+    store.mobile = body.mobile;
+    enterApp();
+  } catch (e) {
+    $("loginErr").textContent = "登录失败：" + e.message;
+  } finally {
+    $("loginBtn").disabled = false;
+  }
+};
+
+$("logout").onclick = () => {
+  store.token = "";
+  location.href = "/";
+};
+
+/* ------------------------------ 会话 ------------------------------ */
+$("newSession").onclick = () => {
+  sessionId = newSessionId();
+  $("turns").innerHTML = "";
+  refreshState();
+};
+$("clearSession").onclick = async () => {
+  await fetch("/api/sessions/" + sessionId, { method: "DELETE", headers: authHeaders() });
+  $("turns").innerHTML = "";
+  refreshState();
+};
+
+function enterApp() {
+  $("login").style.display = "none";
+  $("app").style.display = "flex";
+  sessionId = newSessionId();
+  $("who").textContent = store.mobile.replace(/(\d{3})\d{4}(\d{4})/, "$1****$2");
+  renderSessionChip();
+  refreshState();
+  addBot("你好，我是 wayn 商城客服。可以帮你查订单、看物流、问退换货政策，或把商品加入购物车。");
+}
+
+function renderSessionChip() { $("sessionChip").textContent = "会话 " + sessionId; }
+
+async function refreshState() {
+  renderSessionChip();
+  try {
+    const res = await fetch("/api/sessions/" + sessionId, { headers: authHeaders() });
+    if (res.status === 404) { $("state").textContent = "会话状态：尚未产生（说句话就会写入 Redis）"; return; }
+    const s = await res.json();
+    $("state").textContent = `会话状态（Redis）：消息 ${s.message_count} 条 · 待确认动作 ${s.pending_writes} 个`;
+  } catch (e) { /* 状态展示失败不影响聊天 */ }
+}
+
+/* ------------------------------ 渲染 ------------------------------ */
+function addTurn(cls) {
+  const turn = document.createElement("div");
+  turn.className = "turn " + cls;
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
+  turn.appendChild(bubble);
+  $("turns").appendChild(turn);
+  scrollToEnd();
+  return bubble;
+}
+function addUser(text) { addTurn("user").textContent = text; }
+function addBot(text) { const b = addTurn("bot"); b.textContent = text; return b; }
+function addBotTurn() {
+  const turn = document.createElement("div");
+  turn.className = "turn bot";
+  const wrap = document.createElement("div");
+  wrap.style.maxWidth = "76%";
+  turn.appendChild(wrap);
+  $("turns").appendChild(turn);
+  scrollToEnd();
+  return wrap;
+}
+function addToolChip(wrap, name) {
+  let bar = wrap.querySelector(".tools");
+  if (!bar) { bar = document.createElement("div"); bar.className = "tools"; wrap.appendChild(bar); }
+  const chip = document.createElement("span");
+  chip.className = "tool";
+  chip.textContent = "查询中：" + name;
+  bar.appendChild(chip);
+  return chip;
+}
+function addEscalate() {
+  const div = document.createElement("div");
+  div.className = "escalate";
+  div.textContent = "已触发转人工（escalate=true）：人工客服在线 9:00-21:00，前端可据此接入人工队列。";
+  $("turns").appendChild(div);
+  scrollToEnd();
+}
+function addConfirmCard(wrap, action) {
+  const card = document.createElement("div");
+  card.className = "card";
+  const reversible = action.reversible ? "该动作可以撤销" : "⚠️ 该动作不可撤销";
+  card.innerHTML = `
+    <h3>需要你确认</h3>
+    <div class="ask"></div>
+    <div class="meta"></div>
+    <div class="impact"></div>
+    <div class="btns">
+      <button class="primary" data-act="yes" type="button">确认执行</button>
+      <button data-act="no" type="button">取消</button>
+    </div>`;
+  card.querySelector(".ask").textContent = action.ask || "确认执行该操作？";
+  card.querySelector(".meta").textContent = action.summary || "";
+  card.querySelector(".impact").textContent = (action.impact || "") + "（" + reversible + "）";
+  card.querySelector('[data-act="yes"]').onclick = () => finishConfirm(card, true);
+  card.querySelector('[data-act="no"]').onclick = () => finishConfirm(card, false);
+  wrap.appendChild(card);
+  scrollToEnd();
+}
+function addUsageLine(wrap, usage) {
+  // 成本可见：这一轮调了几次模型、烧了多少 token（后端按身份+天记账，见 GET /api/usage）
+  const line = document.createElement("div");
+  line.className = "tool";
+  line.textContent = `本轮用量：${usage.llm_calls} 次调用 · 输入 ${usage.input_tokens} · 输出 ${usage.output_tokens} tokens`;
+  wrap.appendChild(line);
+}
+function scrollToEnd() { $("main").scrollTop = $("main").scrollHeight; }
+
+/* ------------------------------ 聊天 ------------------------------ */
+async function send(message) {
+  if (busy || !message.trim()) return;
+  busy = true;
+  $("send").disabled = true;
+  addUser(message);
+  const wrap = addBotTurn();
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
+  wrap.appendChild(bubble);
+
+  try {
+    const res = await fetch("/api/chat/stream", {
+      method: "POST",
+      headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ session_id: sessionId, message: message }),
+    });
+    if (!res.ok) { bubble.textContent = await readError(res); return; }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let idx;
+      while ((idx = buffer.indexOf("\n\n")) >= 0) {
+        const frame = buffer.slice(0, idx);
+        buffer = buffer.slice(idx + 2);
+        handleFrame(frame, wrap, bubble);
+      }
+    }
+  } catch (e) {
+    bubble.textContent = "连接失败：" + e.message;
+  } finally {
+    busy = false;
+    $("send").disabled = false;
+    refreshState();
+  }
+}
+
+let currentToolChip = null;
+function handleFrame(frame, wrap, bubble) {
+  const eventMatch = frame.match(/^event: (.*)$/m);
+  const dataMatch = frame.match(/^data: (.*)$/m);
+  if (!eventMatch || !dataMatch) return;
+  const event = eventMatch[1];
+  let data = {};
+  try { data = JSON.parse(dataMatch[1]); } catch (e) { return; }
+
+  if (event === "token") {
+    bubble.textContent += data.text;
+    scrollToEnd();
+  } else if (event === "tool") {
+    if (data.phase === "start") {
+      currentToolChip = addToolChip(wrap, data.name);
+    } else if (currentToolChip) {
+      currentToolChip.textContent = "已查询：" + data.name;
+      currentToolChip = null;
+    }
+  } else if (event === "done") {
+    if (data.reply && !bubble.textContent) bubble.textContent = data.reply;
+    if (data.degraded) {
+      bubble.classList.add("degraded");
+      bubble.textContent += "\n（降级：" + (data.reason || "未知") + "）";
+    }
+    if (data.escalate) addEscalate();
+    if (data.pending_action) addConfirmCard(wrap, data.pending_action);
+    if (data.usage && data.usage.llm_calls) addUsageLine(wrap, data.usage);
+    scrollToEnd();
+  }
+}
+
+async function finishConfirm(card, approved) {
+  card.querySelectorAll("button").forEach((b) => (b.disabled = true));
+  card.classList.add("done");
+  const wrap = addBotTurn();
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
+  bubble.textContent = approved ? "（已确认，正在执行…）" : "（已取消）";
+  wrap.appendChild(bubble);
+  try {
+    const res = await fetch("/api/chat/confirm", {
+      method: "POST",
+      headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ session_id: sessionId, approved: approved }),
+    });
+    const body = await res.json();
+    bubble.textContent = res.ok ? body.reply : await readError(res);
+    if (res.ok && body.pending_action) addConfirmCard(wrap, body.pending_action);
+  } catch (e) {
+    bubble.textContent = "确认失败：" + e.message;
+  } finally {
+    refreshState();
+  }
+}
+
+/* ------------------------------ 事件绑定 ------------------------------ */
+$("send").onclick = () => { const v = $("input").value; $("input").value = ""; send(v); };
+$("input").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("send").click(); }
+});
+document.querySelectorAll("#quick button").forEach((btn) => {
+  btn.onclick = () => {
+    // 「找商品」「算价格」这类缺用户信息的，只把话头填进输入框并聚焦，
+    // 让用户自己补——不能替他编一个（原来「找商品」直接发"帮我找找有没有床垫"，
+    // AI 就照着"床垫"去查了，用户会觉得"我还没说是什么它就自己决定了"）
+    if (btn.dataset.fill !== undefined) {
+      const box = $("input");
+      box.value = btn.dataset.fill;
+      box.focus();
+      box.setSelectionRange(box.value.length, box.value.length);
+      return;
+    }
+    send(btn.dataset.msg);
+  };
+});
+
+if (store.token) enterApp();
+</script>
+</body>
+</html>

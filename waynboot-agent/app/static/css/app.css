@@ -1,0 +1,278 @@
+/* ==========================================================================
+   app.css —— 商城各页面自己的样式（通用组件见 base.css）
+   ========================================================================== */
+
+/* ------------------------------ 搜索条 ------------------------------ */
+
+.searchbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 12px 8px;
+  padding: 9px 12px;
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--muted);
+  cursor: pointer;
+}
+.searchbar svg { width: 16px; height: 16px; stroke: var(--muted); fill: none; stroke-width: 2; flex: none; }
+
+/* ------------------------------ 首页 ------------------------------ */
+
+.banner {
+  position: relative;
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin: 0 12px;
+  aspect-ratio: 16/7;
+  background: var(--bg);
+}
+.banner img { width: 100%; height: 100%; object-fit: cover; }
+.banner .dots { position: absolute; bottom: 8px; left: 0; right: 0; display: flex; justify-content: center; gap: 5px; }
+.banner .dots i { width: 5px; height: 5px; border-radius: 50%; background: rgba(255, 255, 255, .55); }
+.banner .dots i.on { background: #fff; width: 14px; border-radius: 3px; }
+
+.diamonds {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+  padding: 14px 8px 6px;
+}
+.diamond { text-align: center; cursor: pointer; }
+.diamond img { width: 44px; height: 44px; margin: 0 auto 6px; border-radius: 50%; background: var(--bg); object-fit: cover; }
+.diamond span { font-size: 11px; color: var(--text-2); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ------------------------------ 分类页 ------------------------------ */
+
+.cat-wrap { display: flex; align-items: flex-start; }
+
+.cat-rail {
+  width: 88px;
+  flex: none;
+  background: var(--surface-2);
+  position: sticky;
+  top: var(--nav-h);
+}
+.cat-rail .item {
+  padding: 15px 8px;
+  font-size: 13px;
+  color: var(--text-2);
+  text-align: center;
+  cursor: pointer;
+  border-left: 3px solid transparent;
+}
+.cat-rail .item.active { background: var(--surface); color: var(--brand); font-weight: 600; border-left-color: var(--brand); }
+
+.cat-main { flex: 1; min-width: 0; padding-bottom: 12px; }
+.cat-main .head { display: flex; gap: 12px; align-items: center; padding: 14px; }
+.cat-main .head img { width: 54px; height: 54px; border-radius: 50%; background: var(--bg); object-fit: cover; }
+.cat-main .head h2 { margin: 0 0 4px; font-size: 15px; }
+.cat-main .head p { margin: 0; font-size: 12px; color: var(--muted); }
+
+.sub-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 6px; padding: 4px 12px 16px; }
+.sub-grid .sub { text-align: center; cursor: pointer; }
+.sub-grid .sub img { width: 58px; height: 58px; margin: 0 auto 6px; border-radius: 50%; background: var(--bg); object-fit: cover; }
+.sub-grid .sub span { font-size: 12px; color: var(--text-2); }
+
+/* ------------------------------ 搜索结果 ------------------------------ */
+
+.search-head { padding: 0 0 6px; }
+.filters { display: flex; gap: 8px; padding: 6px 12px 2px; overflow-x: auto; }
+.filters::-webkit-scrollbar { display: none; }
+
+.sug-list { background: var(--surface); }
+.sug-list .sug { padding: 12px 16px; border-bottom: 1px solid var(--line); cursor: pointer; font-size: 13px; }
+.sug-list .sug:last-child { border-bottom: 0; }
+
+/* ------------------------------ 商品详情 ------------------------------ */
+
+.gallery { position: relative; background: var(--surface); }
+.gallery .track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; }
+.gallery .track::-webkit-scrollbar { display: none; }
+.gallery .track img { width: 100%; flex: none; aspect-ratio: 1/1; object-fit: cover; scroll-snap-align: center; }
+.gallery .count {
+  position: absolute; right: 12px; bottom: 12px;
+  padding: 2px 10px; border-radius: 999px;
+  background: rgba(24, 27, 32, .5); color: #fff; font-size: 11px;
+}
+
+.goods-head { background: var(--surface); padding: 14px; }
+.goods-head .row { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; }
+.goods-head h1 { margin: 0 0 6px; font-size: 17px; line-height: 1.4; }
+.goods-head .brief { margin: 0 0 10px; font-size: 12px; color: var(--muted); }
+.goods-head .sales { font-size: 12px; color: var(--muted); }
+
+.sku-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.sku {
+  padding: 7px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  font-size: 13px;
+  cursor: pointer;
+  background: var(--surface);
+}
+.sku.on { border-color: var(--brand); color: var(--brand); background: var(--brand-soft); }
+.sku.off { opacity: .4; text-decoration: line-through; pointer-events: none; }
+
+.stepper { display: inline-flex; align-items: center; border: 1px solid var(--line-strong); border-radius: 999px; overflow: hidden; }
+.stepper button { width: 32px; height: 30px; border: 0; background: var(--surface); cursor: pointer; font-size: 16px; color: var(--text-2); }
+.stepper button[disabled] { color: var(--line-strong); }
+.stepper span { min-width: 40px; text-align: center; font-size: 14px; }
+
+.attr-table { padding: 0 14px 14px; }
+.attr-table .attr { display: flex; gap: 12px; padding: 8px 0; border-bottom: 1px dashed var(--line); font-size: 13px; }
+.attr-table .attr:last-child { border-bottom: 0; }
+.attr-table .attr b { flex: none; width: 72px; color: var(--muted); font-weight: 400; }
+.attr-table .attr span { white-space: pre-wrap; }
+
+.rich { font-size: 0; }
+.rich img { width: 100%; }
+
+.detail-bar {
+  position: fixed;
+  bottom: 0;
+  z-index: 40;
+  width: 100%;
+  max-width: var(--maxw);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px));
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+}
+.detail-bar .btn { flex: 1; }
+
+/* ------------------------------ 购物车 ------------------------------ */
+
+.cart-item { display: flex; gap: 10px; padding: 12px; background: var(--surface); border-bottom: 1px solid var(--line); }
+.cart-item:last-child { border-bottom: 0; }
+.cart-item .pick { display: grid; place-items: center; width: 26px; flex: none; }
+.cart-item .pick input { width: 18px; height: 18px; accent-color: var(--brand); }
+.cart-item img { width: 82px; height: 82px; border-radius: var(--radius-sm); background: var(--bg); object-fit: cover; flex: none; }
+.cart-item .info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.cart-item .name { font-size: 13px; line-height: 1.4; max-height: 2.8em; overflow: hidden; }
+.cart-item .spec { font-size: 11px; color: var(--muted); margin-top: 3px; }
+.cart-item .foot { margin-top: auto; display: flex; align-items: center; justify-content: space-between; }
+.cart-item .del { border: 0; background: none; color: var(--muted); font-size: 12px; cursor: pointer; padding: 4px; }
+
+.checkout-bar {
+  position: fixed;
+  bottom: var(--tab-h);
+  z-index: 35;
+  width: 100%;
+  max-width: var(--maxw);
+  padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.checkout-bar .sum { flex: 1; font-size: 13px; color: var(--text-2); }
+.checkout-bar .sum b { display: block; font-size: 17px; color: var(--price); }
+
+/* ------------------------------ 结算 / 订单公共 ------------------------------ */
+
+.goods-line { display: flex; gap: 10px; padding: 10px 14px; }
+.goods-line img { width: 66px; height: 66px; border-radius: var(--radius-sm); background: var(--bg); object-fit: cover; flex: none; }
+.goods-line .info { flex: 1; min-width: 0; }
+.goods-line .name { font-size: 13px; line-height: 1.4; max-height: 2.8em; overflow: hidden; }
+.goods-line .spec { font-size: 11px; color: var(--muted); margin-top: 3px; }
+.goods-line .num { font-size: 12px; color: var(--muted); text-align: right; }
+
+.money-row { display: flex; justify-content: space-between; padding: 8px 14px; font-size: 13px; color: var(--text-2); }
+.money-row.total { color: var(--text); font-weight: 600; }
+.money-row.total b { color: var(--price); font-size: 16px; }
+
+.address-card { display: flex; gap: 10px; align-items: flex-start; padding: 14px; cursor: pointer; }
+.address-card .who { font-size: 14px; font-weight: 600; margin-bottom: 3px; }
+.address-card .who span { font-weight: 400; color: var(--text-2); margin-left: 8px; font-size: 13px; }
+.address-card .where { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+/* ------------------------------ 订单 ------------------------------ */
+
+.order-card { background: var(--surface); border-radius: var(--radius); margin: 10px 12px; overflow: hidden; }
+.order-card .top { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px 8px; font-size: 12px; color: var(--muted); }
+.order-card .top .st { font-size: 13px; font-weight: 600; color: var(--text); }
+.order-card .top .st.warn { color: var(--warn); }
+.order-card .top .st.ok { color: var(--ok); }
+.order-card .bottom { display: flex; justify-content: flex-end; gap: 8px; padding: 10px 14px 12px; border-top: 1px solid var(--line); }
+.order-card .bottom .total { margin-right: auto; font-size: 12px; color: var(--muted); align-self: center; }
+.order-card .bottom .total b { color: var(--price); font-size: 14px; }
+
+.tabs {
+  display: flex;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: var(--nav-h);
+  z-index: 20;
+  overflow-x: auto;
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tabs .t {
+  flex: 1;
+  min-width: 74px;
+  padding: 11px 6px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-2);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+}
+.tabs .t.active { color: var(--brand); border-bottom-color: var(--brand); font-weight: 600; }
+
+/* ------------------------------ 我的 ------------------------------ */
+
+.profile-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px 16px;
+  background: var(--surface);
+}
+.profile-head img { width: 60px; height: 60px; border-radius: 50%; background: var(--bg); object-fit: cover; }
+.profile-head .who { font-size: 17px; font-weight: 600; }
+.profile-head .sub { font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+.stat-row { display: flex; background: var(--surface); }
+.stat-row .stat { flex: 1; text-align: center; padding: 14px 0; cursor: pointer; }
+.stat-row .stat b { display: block; font-size: 18px; }
+.stat-row .stat span { font-size: 12px; color: var(--muted); }
+
+/* ------------------------------ 支付 ------------------------------ */
+
+.pay-amount { text-align: center; padding: 30px 0 22px; }
+.pay-amount .num { font-size: 32px; font-weight: 600; color: var(--price); }
+.pay-amount .num .sym { font-size: 18px; margin-right: 2px; }
+.pay-amount .tip { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+.pay-option { display: flex; align-items: center; gap: 12px; padding: 15px 14px; border-bottom: 1px solid var(--line); cursor: pointer; }
+.pay-option:last-child { border-bottom: 0; }
+.pay-option .dot { width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--line-strong); flex: none; display: grid; place-items: center; }
+.pay-option.on .dot { border-color: var(--brand); border-width: 5px; }
+.pay-option .name { flex: 1; }
+.pay-option .name small { display: block; color: var(--muted); font-size: 11px; }
+
+/* ------------------------------ 客服浮标 ------------------------------ */
+
+#cs-fab {
+  position: fixed;
+  right: max(14px, calc(50% - var(--maxw) / 2 + 14px));
+  bottom: calc(var(--tab-h) + 18px);
+  z-index: 45;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 0;
+  background: var(--brand);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 6px 18px rgba(47, 111, 237, .35);
+  cursor: pointer;
+}
+#cs-fab svg { width: 24px; height: 24px; stroke: #fff; fill: none; stroke-width: 1.8; }
+#cs-fab.with-bar { bottom: calc(var(--tab-h) + 76px); }

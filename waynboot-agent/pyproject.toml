@@ -1,0 +1,56 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "waynboot-agent"
+version = "0.1.0"
+description = "waynboot-mall 的 AI 客服 Agent 服务（LangChain + LangGraph）"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    # Web 层
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    # HTTP 客户端（调用 mall）
+    "httpx>=0.27",
+    # 配置绑定
+    "pydantic>=2.9",
+    "pydantic-settings>=2.6",
+    # Agent 编排（P1 起使用）
+    "langgraph>=0.2.60",
+    "langchain-core>=0.3.28",
+    "langchain-openai>=0.2.14",
+    # 会话记忆（P3 起使用，复用 mall 的 Redis）
+    "redis>=5.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "ruff>=0.8",
+    # 内存版 Redis：让 checkpointer 的单测不依赖本机 Redis 进程（决策 D7）
+    "fakeredis>=2.26",
+]
+# 可选：官方 Redis checkpointer。**要求 Redis 8+/Redis Stack**（依赖 RedisJSON + RediSearch），
+# 本机的 Windows 版 Redis 8.10.2 未编译这两个模块（实测 JSON.SET/FT._LIST 均 unknown command），
+# 因此默认不装；若换到 Redis Stack 环境，装它并替换 app/memory 里的 checkpointer 实现即可。
+stack = [
+    "langgraph-checkpoint-redis>=0.0.4",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-q"
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

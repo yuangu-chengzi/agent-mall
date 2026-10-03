@@ -1,0 +1,11 @@
+{
+  "name": "waynboot-agent-frontend-check",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node check-pages.mjs"
+  },
+  "dependencies": {
+    "jsdom": "^27.0.0"
+  }
+}

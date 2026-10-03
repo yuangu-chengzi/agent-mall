@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+tests/
+docs/
+scripts/
+# 密钥与本地配置绝对不能进镜像（.env 里可能有 API Key）
+.env
+.git/
+.gitignore

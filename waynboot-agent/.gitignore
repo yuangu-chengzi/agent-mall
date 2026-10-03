@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.py[cod]
+.env
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+
+# tools/frontend-check 的 jsdom 依赖（前端渲染检查用，不进仓库）
+node_modules/
+package-lock.json
